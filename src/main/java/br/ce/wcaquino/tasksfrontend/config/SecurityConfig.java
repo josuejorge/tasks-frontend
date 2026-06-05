@@ -35,10 +35,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	}
 
 	private LogoutSuccessHandler oidcLogoutSuccessHandler() {
-		OidcClientInitiatedLogoutSuccessHandler handler =
-			new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-		// apos logout no Keycloak, volta para a raiz da aplicacao
-		handler.setPostLogoutRedirectUri("{baseUrl}/tasks/");
-		return handler;
+		// apos logout no Keycloak, redireciona para a tela de login do Keycloak
+		// (Spring Security 5.2.x nao suporta template {baseUrl} aqui)
+		return new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
 	}
 }
