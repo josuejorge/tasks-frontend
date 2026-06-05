@@ -1,20 +1,25 @@
 package br.ce.wcaquino.tasksfrontend.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-	@Autowired
-	private ClientRegistrationRepository clientRegistrationRepository;
+	// URL que o NAVEGADOR usa para acessar o Keycloak
+	@Value("${spring.security.oauth2.client.provider.keycloak.authorization-uri}")
+	private String keycloakAuthUri;
+
+	@Value("${app.base-url:http://localhost:9999}")
+	private String appBaseUrl;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -33,12 +38,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 			.and()
 
 			.logout()
-				.logoutSuccessHandler(oidcLogoutSuccessHandler());
+				.logoutSuccessHandler(keycloakLogoutSuccessHandler());
 	}
 
-	private LogoutSuccessHandler oidcLogoutSuccessHandler() {
-		// apos logout no Keycloak, redireciona para a tela de login do Keycloak
-		// (Spring Security 5.2.x nao suporta template {baseUrl} aqui)
-		return new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+	private LogoutSuccessHandler keycloakLogoutSuccessHandler() {
+		// Deriva a URL base do Keycloak a partir da authorization-uri já configurada
+		// ex: .../protocol/openid-connect/auth -> .../protocol/openid-connect/logout
+		return (HttpServletRequest request, HttpServletResponse response, Authentication authentication) -> {
+			String logoutEndpoint = keycloakAuthUri.replace("/auth", "/logout");
+			String redirectUri = appBaseUrl + "/tasks/";
+			response.sendRedirect(logoutEndpoint + "?redirect_uri=" + redirectUri);
+		};
 	}
 }
