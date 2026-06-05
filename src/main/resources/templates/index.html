@@ -14,7 +14,8 @@
 		</div>
 		<p class="alert alert-success" role="alert" th:if="${success != null}" th:text="${success}" id="message" />
 		<div th:switch="${todos.size()}">
-			<h2 th:case="0">Sem Tarefas por hoje... aproveite seu dia!</h2>
+			<h2 th:case="0">Sem Tarefas por hoje... aproveite seu dia!</h2>				
+			
 			<div th:case="*">
 				<table id="todoTable" class="table table-hover">
 					<thead class="thead-dark">

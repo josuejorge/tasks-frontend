@@ -49,26 +49,34 @@ public class TasksController {
 		try {
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.postForObject(
-					getBackendURL() + "/tasks-backend/todo", todo, Object.class);			
+					getBackendURL() + "/tasks-backend/todo", todo, Object.class);
 			model.addAttribute("success", "Success!!");
+			model.addAttribute("todos", getTodos());
 			return "index";
 		} catch(Exception e) {
-			Pattern compile = Pattern.compile("message\":\"(.*)\",");
-			Matcher m = compile.matcher(e.getMessage());
-			m.find();
-			model.addAttribute("error", m.group(1));
+			try {
+				Pattern compile = Pattern.compile("message\":\"(.*)\",");
+				Matcher m = compile.matcher(e.getMessage());
+				m.find();
+				model.addAttribute("error", m.group(1));
+			} catch(Exception ex) {
+				model.addAttribute("error", e.getMessage());
+			}
 			model.addAttribute("todo", todo);
-			return "add"; 
-		} finally {
 			model.addAttribute("todos", getTodos());
+			return "add";
 		}
 	}
-	
+
 	@GetMapping("delete/{id}")
 	public String delete(@PathVariable Long id, Model model) {
-		RestTemplate restTemplate = new RestTemplate();
-		restTemplate.delete(getBackendURL() + "/tasks-backend/todo/" + id);			
-		model.addAttribute("success", "Success!");
+		try {
+			RestTemplate restTemplate = new RestTemplate();
+			restTemplate.delete(getBackendURL() + "/tasks-backend/todo/" + id);
+			model.addAttribute("success", "Success!");
+		} catch(Exception e) {
+			model.addAttribute("error", "Failed to delete task: " + e.getMessage());
+		}
 		model.addAttribute("todos", getTodos());
 		return "index";
 	}
