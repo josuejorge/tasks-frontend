@@ -18,12 +18,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
-		http
-			// CSRF desabilitado: os templates Thymeleaf nao incluem token CSRF
-			// seguranca garantida pelo OAuth2 session
-			.csrf().disable()
-			.and()
+		// CSRF desabilitado: os templates Thymeleaf nao incluem token CSRF
+		http.csrf().disable();
 
+		http
 			.authorizeRequests()
 				.anyRequest().authenticated()
 			.and()
