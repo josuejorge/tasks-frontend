@@ -11,6 +11,9 @@
 		<div class="py-5 text-center">
 			<h1>Tarefas</h1>
 			<p class="lead">A very simple task management tool</p>
+			<form th:action="@{/logout}" method="post" class="d-inline">
+				<button type="submit" class="btn btn-outline-danger btn-sm">Sair</button>
+			</form>
 		</div>
 		<p class="alert alert-success" role="alert" th:if="${success != null}" th:text="${success}" id="message" />
 		<div th:switch="${todos.size()}">
