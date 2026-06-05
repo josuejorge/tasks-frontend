@@ -19,17 +19,21 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		http
+			// CSRF desabilitado: os templates Thymeleaf nao incluem token CSRF
+			// seguranca garantida pelo OAuth2 session
+			.csrf().disable()
+			.and()
+
 			.authorizeRequests()
-				// toda requisicao precisa estar autenticado
 				.anyRequest().authenticated()
 			.and()
 
-			// login via Keycloak — redireciona automaticamente para a tela de login
+			// "/" = raiz relativa ao context path do Tomcat (/tasks)
+			// evita o duplo path tasks/tasks/
 			.oauth2Login()
-				.defaultSuccessUrl("/tasks/", true)
+				.defaultSuccessUrl("/", true)
 			.and()
 
-			// logout: limpa sessao local E propaga para o Keycloak
 			.logout()
 				.logoutSuccessHandler(oidcLogoutSuccessHandler());
 	}
