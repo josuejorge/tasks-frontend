@@ -76,14 +76,38 @@ public class TasksController {
 		return "index";
 	}
 
+	@SuppressWarnings("unchecked")
 	private String extractRole(Authentication authentication) {
-		return authentication.getAuthorities().stream()
-			.map(a -> a.getAuthority())
-			.filter(a -> a.startsWith("ROLE_") || !a.startsWith("SCOPE_"))
-			.map(a -> a.replace("ROLE_", "").toLowerCase())
-			.filter(a -> a.equals("admin") || a.equals("user") || a.equals("qa"))
-			.findFirst()
-			.orElse("");
+		if (!(authentication instanceof OAuth2AuthenticationToken)) return "";
+		OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
+		if (!(token.getPrincipal() instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser)) return "";
+
+		org.springframework.security.oauth2.core.oidc.user.OidcUser oidcUser =
+			(org.springframework.security.oauth2.core.oidc.user.OidcUser) token.getPrincipal();
+
+		java.util.Map<String, Object> realmAccess = oidcUser.getAttribute("realm_access");
+		if (realmAccess == null) return "";
+
+		java.util.List<String> roles = (java.util.List<String>) realmAccess.get("roles");
+		if (roles == null) return "";
+
+		// prioridade: ADMIN > QA > USER
+		for (String priority : new String[]{"ADMIN", "QA", "USER"}) {
+			if (roles.stream().anyMatch(r -> r.equalsIgnoreCase(priority)))
+				return priority.toLowerCase();
+		}
+		return "";
+	}
+
+	@GetMapping("debug")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public Object debug(Authentication authentication) {
+		RestTemplate restTemplate = new RestTemplate();
+		HttpHeaders headers = buildAuthHeaders(authentication);
+		HttpEntity<Void> entity = new HttpEntity<>(headers);
+		return restTemplate.exchange(
+			getBackendURL() + "/tasks-backend/debug/me",
+			HttpMethod.GET, entity, Object.class).getBody();
 	}
 
 	@GetMapping("add")
