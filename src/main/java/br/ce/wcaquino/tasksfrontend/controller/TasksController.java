@@ -60,11 +60,30 @@ public class TasksController {
 
 	@GetMapping("")
 	public String index(Model model, Authentication authentication) {
-		model.addAttribute("todos", getTodos(authentication));
+		String role = extractRole(authentication);
 		model.addAttribute("username", authentication.getName());
+		model.addAttribute("role", role);
 		if (VERSION.startsWith("build"))
 			model.addAttribute("version", VERSION);
+
+		// QA nao tem acesso a tasks — exibe pagina sem a listagem
+		if ("qa".equals(role)) {
+			model.addAttribute("todos", java.util.Collections.emptyList());
+			model.addAttribute("info", "Seu perfil (QA) nao tem acesso a tarefas.");
+		} else {
+			model.addAttribute("todos", getTodos(authentication));
+		}
 		return "index";
+	}
+
+	private String extractRole(Authentication authentication) {
+		return authentication.getAuthorities().stream()
+			.map(a -> a.getAuthority())
+			.filter(a -> a.startsWith("ROLE_") || !a.startsWith("SCOPE_"))
+			.map(a -> a.replace("ROLE_", "").toLowerCase())
+			.filter(a -> a.equals("admin") || a.equals("user") || a.equals("qa"))
+			.findFirst()
+			.orElse("");
 	}
 
 	@GetMapping("add")
