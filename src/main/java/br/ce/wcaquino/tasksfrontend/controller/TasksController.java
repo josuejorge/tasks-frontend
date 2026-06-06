@@ -110,6 +110,17 @@ public class TasksController {
 			HttpMethod.GET, entity, Object.class).getBody();
 	}
 
+	@GetMapping("token")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public Object token(Authentication authentication) {
+		if (!(authentication instanceof OAuth2AuthenticationToken)) return "not oauth2";
+		OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+		OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+			oauthToken.getAuthorizedClientRegistrationId(), oauthToken.getName());
+		if (client == null || client.getAccessToken() == null) return "no token";
+		return java.util.Collections.singletonMap("access_token", client.getAccessToken().getTokenValue());
+	}
+
 	@GetMapping("add")
 	public String add(Model model) {
 		model.addAttribute("todo", new Todo());
