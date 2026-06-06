@@ -78,23 +78,31 @@ public class TasksController {
 
 	@SuppressWarnings("unchecked")
 	private String extractRole(Authentication authentication) {
+		// As roles do Keycloak ficam em realm_access.roles do ACCESS TOKEN
+		// (o ID token nao traz por padrao), por isso decodificamos o access token.
 		if (!(authentication instanceof OAuth2AuthenticationToken)) return "";
-		OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
-		if (!(token.getPrincipal() instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser)) return "";
+		OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+		OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+			oauthToken.getAuthorizedClientRegistrationId(), oauthToken.getName());
+		if (client == null || client.getAccessToken() == null) return "";
 
-		org.springframework.security.oauth2.core.oidc.user.OidcUser oidcUser =
-			(org.springframework.security.oauth2.core.oidc.user.OidcUser) token.getPrincipal();
+		try {
+			String tokenValue = client.getAccessToken().getTokenValue();
+			String payload = tokenValue.split("\\.")[1];
+			byte[] decoded = java.util.Base64.getUrlDecoder().decode(payload);
+			com.fasterxml.jackson.databind.JsonNode root =
+				new com.fasterxml.jackson.databind.ObjectMapper().readTree(decoded);
+			com.fasterxml.jackson.databind.JsonNode roles = root.path("realm_access").path("roles");
 
-		java.util.Map<String, Object> realmAccess = oidcUser.getAttribute("realm_access");
-		if (realmAccess == null) return "";
-
-		java.util.List<String> roles = (java.util.List<String>) realmAccess.get("roles");
-		if (roles == null) return "";
-
-		// prioridade: ADMIN > QA > USER
-		for (String priority : new String[]{"ADMIN", "QA", "USER"}) {
-			if (roles.stream().anyMatch(r -> r.equalsIgnoreCase(priority)))
-				return priority.toLowerCase();
+			// prioridade: ADMIN > QA > USER
+			for (String priority : new String[]{"ADMIN", "QA", "USER"}) {
+				for (com.fasterxml.jackson.databind.JsonNode r : roles) {
+					if (r.asText().equalsIgnoreCase(priority))
+						return priority.toLowerCase();
+				}
+			}
+		} catch (Exception e) {
+			return "";
 		}
 		return "";
 	}
